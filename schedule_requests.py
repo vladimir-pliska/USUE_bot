@@ -43,8 +43,6 @@ def load_page():
 
 
 def parse_schedule(table, today, tomorrow):
-    today.strftime("%d.%m.%Y")  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    tomorrow.strftime("%d.%m.%Y")  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     i = 0
 
     for tr in table("tr"):
