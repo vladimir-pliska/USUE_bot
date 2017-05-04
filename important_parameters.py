@@ -1,4 +1,3 @@
-import psycopg2
+# -*- coding: utf-8 -*-
 
 token = <BOT TOKEN>
-db_url = <Database URL>
