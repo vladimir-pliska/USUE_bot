@@ -2,7 +2,9 @@
 
 import telebot
 from keyboard_markups import Keyboard
+
 from important_parameters import token
+from database_and_parsing import load_schedule_page
 
 
 bot = telebot.TeleBot(token)
@@ -31,6 +33,23 @@ def handle_text(message):
 @bot.message_handler(func=lambda mess: u"Получить расписание" == mess.text, content_types=["text"])
 def handle_text(message):
     keyboard.get_faculties(message)
+
+
+@bot.message_handler(func=lambda mess: u"Магистратуры" == mess.text, content_types=["text"])
+def handle_text(message):
+    keyboard.two_courses(message)
+
+
+@bot.message_handler(func=lambda mess: u"ИНО (ФСП)" == mess.text or u"ИДО (ЦДО)" == mess.text, content_types=["text"])
+def handle_text(message):
+    keyboard.three_courses(message)
+
+
+@bot.message_handler(func=lambda mess: u"Менеджмента и информационных технологий" == mess.text or
+                     u"Торговли, пищевых технологий и сервиса" == mess.text or u"Финансов и права" == mess.text or
+                     u"Экономики" == mess.text or u"Заочного обучения" == mess.text, content_types=["text"])
+def handle_text(message):
+    keyboard.four_courses(message)
 
 
 @bot.message_handler(func=lambda mess: u"Расписание по подписке" == mess.text, content_types=["text"])

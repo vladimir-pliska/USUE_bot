@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import telebot
+
 from additional_data import faculty_list
 
 
@@ -24,3 +25,23 @@ class Keyboard:
             faculty_markup.row(faculty)
 
         self.bot.send_message(message.from_user.id, "Выберите институт:", reply_markup=faculty_markup)
+
+    def two_courses(self, message):
+        course_markup = telebot.types.ReplyKeyboardMarkup(True, False)
+        course_markup.row("Вернуться назад")
+        course_markup.row("1 курс", "2 курс")
+        self.bot.send_message(message.from_user.id, "Выберите курс:", reply_markup=course_markup)
+
+    def three_courses(self, message):
+        course_markup = telebot.types.ReplyKeyboardMarkup(True, False)
+        course_markup.row("Вернуться назад")
+        course_markup.row("1 курс", "2 курс")
+        course_markup.row("3 курс")
+        self.bot.send_message(message.from_user.id, "Выберите курс:", reply_markup=course_markup)
+
+    def four_courses(self, message):
+        course_markup = telebot.types.ReplyKeyboardMarkup(True, False)
+        course_markup.row("Вернуться назад")
+        course_markup.row("1 курс", "3 курс")
+        course_markup.row("2 курс", "4 курс")
+        self.bot.send_message(message.from_user.id, "Выберите курс:", reply_markup=course_markup)
