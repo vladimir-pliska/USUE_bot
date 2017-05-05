@@ -4,11 +4,12 @@ import telebot
 from keyboard_markups import Keyboard
 
 from important_parameters import token
-from database_and_parsing import load_schedule_page
+from database_and_parsing import UserPosition, get_groups, group_list
 
 
 bot = telebot.TeleBot(token)
 keyboard = Keyboard(bot)
+get_groups()
 
 
 @bot.message_handler(commands=['start'])
@@ -25,23 +26,27 @@ def send_welcome(message):
     bot.send_message(message.from_user.id, "Выберите пункт меню:", reply_markup=user_markup)
 
 
-@bot.message_handler(func=lambda mess: u"Главное меню" == mess.text, content_types=["text"])
+@bot.message_handler(func=lambda mess: u"Главное меню" == mess.text,
+                     content_types=["text"])
 def handle_text(message):
     keyboard.main_menu(message)
 
 
 @bot.message_handler(func=lambda mess: u"Получить расписание" == mess.text, content_types=["text"])
 def handle_text(message):
+    UserPosition.set_starting_position(str(message.from_user.id), message.from_user.username)
     keyboard.get_faculties(message)
 
 
 @bot.message_handler(func=lambda mess: u"Магистратуры" == mess.text, content_types=["text"])
 def handle_text(message):
+    UserPosition.set_faculty_position(str(message.from_user.id), message.text)
     keyboard.two_courses(message)
 
 
-@bot.message_handler(func=lambda mess: u"ИНО (ФСП)" == mess.text or u"ИДО (ЦДО)" == mess.text, content_types=["text"])
+@bot.message_handler(func=lambda mess: u"ИНО (ФСП)" == mess.text or u"ИДО" == mess.text, content_types=["text"])
 def handle_text(message):
+    UserPosition.set_faculty_position(str(message.from_user.id), message.text)
     keyboard.three_courses(message)
 
 
@@ -49,7 +54,24 @@ def handle_text(message):
                      u"Торговли, пищевых технологий и сервиса" == mess.text or u"Финансов и права" == mess.text or
                      u"Экономики" == mess.text or u"Заочного обучения" == mess.text, content_types=["text"])
 def handle_text(message):
+    UserPosition.set_faculty_position(str(message.from_user.id), message.text)
     keyboard.four_courses(message)
+
+
+@bot.message_handler(func=lambda mess: u"1 курс" == mess.text or u"2 курс" == mess.text or u"3 курс" == mess.text or
+                                       u"4 курс" == mess.text, content_types=["text"])
+def handle_text(message):
+    UserPosition.set_course_position(str(message.from_user.id), message.text[:1])
+    faculty, course = UserPosition.get_faculty_and_course(str(message.from_user.id))
+    groups = UserPosition.get_groups(faculty, course)
+    groups.sort()
+    keyboard.form_group_list(message, groups)
+
+
+@bot.message_handler(func=lambda mess: mess.text in group_list, content_types=["text"])
+def handle_text(message):
+    UserPosition.set_group_position(str(message.from_user.id), message.text)
+    keyboard.schedule_menu(message)
 
 
 @bot.message_handler(func=lambda mess: u"Расписание по подписке" == mess.text, content_types=["text"])
@@ -77,7 +99,41 @@ def handle_text(message):
                                            "mr.tommyjacket@gmail.com")
 
 
-@bot.message_handler(commands=['start', 'help'])
+@bot.message_handler(func=lambda mess: u"Вернуться назад" == mess.text, content_types=["text"])
+def handle_text(message):
+    user_position = UserPosition.get_user_position(str(message.from_user.id))
+    faculty, course = UserPosition.get_faculty_and_course(str(message.from_user.id))
+
+    if user_position == 3:
+        UserPosition.cancel_starting_position(str(message.from_user.id))
+        keyboard.main_menu(message)
+
+    if user_position == 2:
+        UserPosition.cancel_faculty(str(message.from_user.id))
+        keyboard.get_faculties(message)
+
+    if user_position == 1:
+        UserPosition.cancel_course(str(message.from_user.id))
+
+        if faculty == u"Магистратуры":
+            keyboard.two_courses(message)
+
+        if faculty == u"ИНО (ФСП)" or faculty == u"ИДО":
+            keyboard.three_courses(message)
+
+        if (faculty == u"Менеджмента и информационных технологий" or
+                faculty == u"Торговли, пищевых технологий и сервиса" or
+                faculty == u"Финансов и права" or faculty == u"Экономики" or faculty == u"Заочного обучения"):
+            keyboard.four_courses(message)
+
+    if user_position == 0:
+        UserPosition.cancel_group(str(message.from_user.id))
+        groups = UserPosition.get_groups(faculty, course)
+        groups.sort()
+        keyboard.form_group_list(message, groups)
+
+
+@bot.message_handler(commands=['help'])
 def send_welcome(message):
     bot.send_message(message.from_user.id, "I'm sorry, " + message.from_user.first_name +
                      ", there's not much I can do yet...")
@@ -85,6 +141,6 @@ def send_welcome(message):
 
 @bot.message_handler(func=lambda m: True)
 def echo_all(message):
-    bot.send_message(message.from_user.id, "А тут все остальное пока =)")
+    bot.send_message(message.from_user.id, "Такому пока не научены ¯\_(ツ)_/¯")
 
 bot.polling()
