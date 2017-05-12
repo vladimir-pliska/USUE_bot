@@ -4,7 +4,7 @@ import datetime
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from pymongo import MongoClient, DESCENDING
+from pymongo import MongoClient, ASCENDING, DESCENDING
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -101,6 +101,39 @@ def parse_schedule(group, table, today, tomorrow):
             continue
 
 
+class Subscription:
+    def __init__(self):
+        print("yay")
+
+    @staticmethod
+    def is_subscriber(user_id):
+        cursor = db.subs.find({"chat_id": user_id})
+
+        if cursor.count() == 0:
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def set_subscription(user_id, group):
+        if Subscription.is_subscriber(user_id):
+            db.subs.find_one_and_update({"chat_id": user_id},
+                                        {"$set": {"group": group}})
+        else:
+            db.subs.insert({"chat_id": user_id,
+                            "group": group})
+
+    @staticmethod
+    def get_subs_group(user_id):
+        user_group = ""
+        cursor = db.subs.find({"chat_id": user_id})
+
+        for entry in cursor:
+            user_group = entry["group"]
+
+        return user_group
+
+
 class UserPosition:
     def __init__(self):
         print("yay")
@@ -133,7 +166,8 @@ class UserPosition:
 
     @staticmethod
     def get_faculty_and_course(user_id):
-        cursor = db.user_log.find({"chat_id": user_id})
+        cursor = db.user_log.find({"chat_id": user_id},
+                                  sort=[("_id", DESCENDING)]).limit(1)
         for entry in cursor:
             faculty = entry["faculty"]
             course = entry["course"]
@@ -152,8 +186,36 @@ class UserPosition:
         return to_return
 
     @staticmethod
-    def get_schedule(group):
-        return 0
+    def get_chosen_group(user_id):
+        to_return = u""
+
+        cursor = db.user_log.find({"chat_id": user_id},
+                                  sort=[("_id", DESCENDING)]).limit(1)
+
+        for entry in cursor:
+            to_return = entry["group"]
+
+        return to_return
+
+    @staticmethod
+    def get_schedule(group, date):
+        date = date.strftime("%d.%m.%Y")
+        schedule_to_return = ""
+
+        cursor = db.schedule.find({"date": date,
+                                   "group": group},
+                                  sort=[("num", ASCENDING)])
+
+        for lesson in cursor:
+            schedule_to_return += "{0} пара | {1} | {2} - {3}\n".format(lesson["num"].encode('utf-8'),
+                                                                        lesson["classroom"].encode('utf-8'),
+                                                                        lesson["subject"].encode('utf-8'),
+                                                                        lesson["teacher"].encode('utf-8'))
+
+        if len(schedule_to_return) == 0:
+            return "Пары отсутствуют."
+
+        return schedule_to_return
 
     @staticmethod
     def get_user_position(user_id):

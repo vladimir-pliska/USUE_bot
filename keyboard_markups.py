@@ -66,7 +66,7 @@ class Keyboard:
     def schedule_menu(self, message):
         menu_markup = telebot.types.ReplyKeyboardMarkup(True, False)
         menu_markup.row("На сегодня", "На завтра")
-        menu_markup.row("Подписаться на эту группу (и поставить лайк)")
+        menu_markup.row("Подписаться на эту группу")
         menu_markup.row("Главное меню", "Вернуться назад")
 
         self.bot.send_message(message.from_user.id, "Выберите пункт меню:", reply_markup=menu_markup)

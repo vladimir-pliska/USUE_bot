@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import telebot
+import datetime
 from keyboard_markups import Keyboard
 
 from important_parameters import token
-from database_and_parsing import UserPosition, get_groups, group_list
+from database_and_parsing import UserPosition, Subscription, get_groups, group_list, load_schedule_page
 
 
 bot = telebot.TeleBot(token)
@@ -74,9 +75,66 @@ def handle_text(message):
     keyboard.schedule_menu(message)
 
 
+@bot.message_handler(func=lambda mess: u"Подписаться на эту группу" == mess.text,
+                     content_types=["text"])
+def handle_text(message):
+    group = UserPosition.get_chosen_group(str(message.from_user.id))
+    Subscription.set_subscription(str(message.from_user.id), group)
+    bot.send_message(message.chat.id, u'Вы подписались на группу {0}.'.format(group))
+
+
+@bot.message_handler(func=lambda mess: u"На сегодня" == mess.text or u"На завтра" == mess.text, content_types=["text"])
+def handle_text(message):
+    today = datetime.datetime.today()
+    tomorrow = datetime.datetime.today() + datetime.timedelta(days=1)
+    weekday_today = today.weekday()
+    weekday_tomorrow = tomorrow.weekday()
+
+    group = UserPosition.get_chosen_group(str(message.from_user.id))
+
+    if message.text == u"На сегодня":
+        if weekday_today == 6:
+            bot.send_message(message.chat.id, "Сегодня выходной день!")
+        else:
+            bot.send_message(message.chat.id, "Расписание на сегодня *({0})*:".format(today.strftime("%d.%m.%Y")[:5]),
+                             parse_mode="Markdown")
+            bot.send_message(message.chat.id, UserPosition.get_schedule(group, today))
+    else:
+        if weekday_tomorrow == 6:
+            bot.send_message(message.chat.id, "Завтра выходной день!")
+        else:
+            bot.send_message(message.chat.id, "Расписание на завтра *({0})*:".format(tomorrow.strftime("%d.%m.%Y")[:5]),
+                             parse_mode=["Markdown"])
+            bot.send_message(message.chat.id, UserPosition.get_schedule(group, tomorrow))
+
+
 @bot.message_handler(func=lambda mess: u"Расписание по подписке" == mess.text, content_types=["text"])
 def handle_text(message):
-    bot.send_message(message.from_user.id, "Вы нажали на кнопку 'Расписание по подписке'! Здесь потом что-нибудь будет")
+    today = datetime.datetime.today()
+    tomorrow = datetime.datetime.today() + datetime.timedelta(days=1)
+    weekday_today = today.weekday()
+    weekday_tomorrow = tomorrow.weekday()
+
+    group = Subscription.get_subs_group(str(message.from_user.id))
+
+    if Subscription.is_subscriber(str(message.from_user.id)):
+        bot.send_message(message.chat.id, "Вы подписаны на группу *" + group.encode('utf-8') + "*.",
+                         parse_mode="Markdown")
+        if weekday_today == 6:
+            bot.send_message(message.chat.id, "Сегодня выходной день!")
+        else:
+            bot.send_message(message.chat.id, "Расписание на сегодня *({0})*:".format(today.strftime("%d.%m.%Y")[:5]),
+                             parse_mode="Markdown")
+            bot.send_message(message.chat.id, UserPosition.get_schedule(group, today))
+
+        if weekday_tomorrow == 6:
+            bot.send_message(message.chat.id, "Завтра выходной день!")
+        else:
+            bot.send_message(message.chat.id, "Расписание на завтра *({0})*:".format(tomorrow.strftime("%d.%m.%Y")[:5]),
+                             parse_mode=["Markdown"])
+            bot.send_message(message.chat.id, UserPosition.get_schedule(group, tomorrow))
+    else:
+        bot.send_message(message.chat.id, "К сожалению, вы не подписаны ни на одну группу.")
 
 
 @bot.message_handler(func=lambda mess: u"Время пар/перерывов" == mess.text, content_types=["text"])
